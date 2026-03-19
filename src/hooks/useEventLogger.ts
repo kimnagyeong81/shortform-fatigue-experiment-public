@@ -49,7 +49,7 @@ export function useEventLogger() {
     if (!participantId.current || !sessionId.current) return;
 
     const idx = sequenceIndex.current++;
-    const { error } = await supabase.from('video_events').insert({
+    const row: Record<string, unknown> = {
       participant_id: participantId.current,
       session_id: sessionId.current,
       video_id: params?.videoId || null,
@@ -58,7 +58,8 @@ export function useEventLogger() {
       playback_position_sec: params?.playbackPositionSec ?? 0,
       watch_duration_sec: params?.watchDurationSec ?? 0,
       metadata: params?.metadata ?? {},
-    });
+    };
+    const { error } = await supabase.from('video_events').insert(row as any);
 
     if (error) console.error('Event log error:', error);
   }, []);

@@ -14,7 +14,162 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      participants: {
+        Row: {
+          created_at: string
+          external_id: string | null
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          external_id?: string | null
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          external_id?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
+      sessions: {
+        Row: {
+          ended_at: string | null
+          id: string
+          participant_id: string
+          started_at: string
+        }
+        Insert: {
+          ended_at?: string | null
+          id?: string
+          participant_id: string
+          started_at?: string
+        }
+        Update: {
+          ended_at?: string | null
+          id?: string
+          participant_id?: string
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sessions_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      video_events: {
+        Row: {
+          event_time: string
+          event_type: Database["public"]["Enums"]["video_event_type"]
+          id: string
+          metadata: Json | null
+          participant_id: string
+          playback_position_sec: number | null
+          sequence_index: number
+          session_id: string
+          video_id: string | null
+          watch_duration_sec: number | null
+        }
+        Insert: {
+          event_time?: string
+          event_type: Database["public"]["Enums"]["video_event_type"]
+          id?: string
+          metadata?: Json | null
+          participant_id: string
+          playback_position_sec?: number | null
+          sequence_index?: number
+          session_id: string
+          video_id?: string | null
+          watch_duration_sec?: number | null
+        }
+        Update: {
+          event_time?: string
+          event_type?: Database["public"]["Enums"]["video_event_type"]
+          id?: string
+          metadata?: Json | null
+          participant_id?: string
+          playback_position_sec?: number | null
+          sequence_index?: number
+          session_id?: string
+          video_id?: string | null
+          watch_duration_sec?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_events_participant_id_fkey"
+            columns: ["participant_id"]
+            isOneToOne: false
+            referencedRelation: "participants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_events_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "video_events_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      videos: {
+        Row: {
+          channel_name: string
+          comment_count: number
+          created_at: string
+          description: string | null
+          duration_sec: number
+          id: string
+          like_count: number
+          order_index: number
+          profile_image: string | null
+          share_count: number
+          thumbnail: string | null
+          title: string
+          video_url: string | null
+        }
+        Insert: {
+          channel_name: string
+          comment_count?: number
+          created_at?: string
+          description?: string | null
+          duration_sec?: number
+          id?: string
+          like_count?: number
+          order_index?: number
+          profile_image?: string | null
+          share_count?: number
+          thumbnail?: string | null
+          title: string
+          video_url?: string | null
+        }
+        Update: {
+          channel_name?: string
+          comment_count?: number
+          created_at?: string
+          description?: string | null
+          duration_sec?: number
+          id?: string
+          like_count?: number
+          order_index?: number
+          profile_image?: string | null
+          share_count?: number
+          thumbnail?: string | null
+          title?: string
+          video_url?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +178,20 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      video_event_type:
+        | "session_start"
+        | "video_impression"
+        | "play"
+        | "pause"
+        | "resume"
+        | "skip"
+        | "complete"
+        | "like"
+        | "unlike"
+        | "comment_open"
+        | "share_click"
+        | "session_end"
+        | "exit"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +318,22 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      video_event_type: [
+        "session_start",
+        "video_impression",
+        "play",
+        "pause",
+        "resume",
+        "skip",
+        "complete",
+        "like",
+        "unlike",
+        "comment_open",
+        "share_click",
+        "session_end",
+        "exit",
+      ],
+    },
   },
 } as const

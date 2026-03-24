@@ -1,3 +1,6 @@
+// src\hooks\use-toast.ts
+//화면에 잠깐 뜨는 알림 메시지(toast)를 추가, 수정, 닫기, 제거하는 전역 상태 관리 코드
+
 import * as React from "react";
 
 import type { ToastActionElement, ToastProps } from "@/components/ui/toast";

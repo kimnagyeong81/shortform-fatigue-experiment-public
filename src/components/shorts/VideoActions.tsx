@@ -1,3 +1,7 @@
+// src/components/shorts/VideoActions.tsx
+//오른쪽 세로 버튼 영역 UI를 만드는 컴포넌트. 즉 Shorts 화면에서 보이는 좋아요, 싫어요, 댓글, 공유, 더보기
+//DB에 직접 저장하는 로직은 없고, 버튼이 눌렸을 때 어떤 함수를 호출할지 연결하는 UI 컴포넌트
+
 import { ThumbsUp, ThumbsDown, MessageCircle, Share2, MoreHorizontal } from 'lucide-react';
 
 function formatCount(n: number): string {
@@ -11,11 +15,11 @@ interface VideoActionsProps {
   commentCount: number;
   shareCount: number;
   isLiked: boolean;
-  onLike: () => void;
-  onDislike: () => void;
-  onComment: () => void;
-  onShare: () => void;
-  onExtra: () => void;
+  onLike: () => void;     //즉 버튼 눌렀을 때 실행할 함수
+  onDislike: () => void;    //즉 버튼 눌렀을 때 실행할 함수
+  onComment: () => void;    //즉 버튼 눌렀을 때 실행할 함수
+  onShare: () => void;    //즉 버튼 눌렀을 때 실행할 함수
+  onExtra: () => void;    //즉 버튼 눌렀을 때 실행할 함수
 }
 
 function ActionButton({

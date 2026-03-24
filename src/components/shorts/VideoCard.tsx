@@ -1,17 +1,21 @@
+// src/components/shorts/VideoCard.tsx
+// 숏폼 영상 1개 카드를 만드는 컴포넌트. 즉, 좋아요 상태, 일시정지 상태, 재생 진행률, 오른쪽 액션 버튼, 아래 영상 정보, 클릭 시 pause/play 전환을 처리
+
+
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Play } from 'lucide-react';
 import VideoActions from './VideoActions';
 import VideoInfo from './VideoInfo';
 import { bgColorForIndex, type VideoData } from '@/data/mockVideos';
 
-interface VideoCardProps {
-  video: VideoData;
-  index: number;
-  isActive: boolean;
-  onLike: (videoId: string, liked: boolean) => void;
-  onComment: (videoId: string) => void;
-  onShare: (videoId: string) => void;
-  onPlayStateChange: (playing: boolean) => void;
+interface VideoCardProps {    //부모(ShortsPlayer)에게서 받는 값들
+  video: VideoData;  //현재 영상 데이터
+  index: number;    // 몇번째 영상인지
+  isActive: boolean;  //지금 화면에 보이는 활성 영상인지
+  onLike: (videoId: string, liked: boolean) => void;  //좋아요 눌렀을 때 부모에 알리는 함수
+  onComment: (videoId: string) => void;  //댓글 버튼 눌렀을 때 부모에 알리는 함수
+  onShare: (videoId: string) => void;  //공유 버튼 눌렀을 때 부모에 알리는 함수
+  onPlayStateChange: (playing: boolean) => void;  //재생/일시정지 상태가 바뀌었을 때 부모에 알리는 함수
 }
 
 export default function VideoCard({
@@ -32,17 +36,17 @@ export default function VideoCard({
   // Simulate playback progress
   useEffect(() => {
     if (isActive && !paused) {
-      onPlayStateChange(true);
+      onPlayStateChange(true);   //부모에게 “지금 재생 중”이라고 알림
       intervalRef.current = setInterval(() => {
         elapsedRef.current += 0.1;
-        const pct = Math.min((elapsedRef.current / video.duration_sec) * 100, 100);
+        const pct = Math.min((elapsedRef.current / video.duration_sec) * 100, 100);  //전체 길이(video.duration_sec) 대비 몇 % 봤는지 계산
         setProgress(pct);
       }, 100);
     } else {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (!isActive) {
-        elapsedRef.current = 0;
-        setProgress(0);
+        elapsedRef.current = 0;  //현재 화면에서 벗어난 영상이면 초기화
+        setProgress(0);  //현재 화면에서 벗어난 영상이면 초기화
       }
     }
     return () => {
@@ -50,13 +54,17 @@ export default function VideoCard({
     };
   }, [isActive, paused, video.duration_sec, onPlayStateChange]);
 
+
+  //즉 화면 전체를 누르면 재생/일시정지 전환
   const togglePause = useCallback(() => {
     setPaused((p) => {
-      onPlayStateChange(p); // if was paused, now playing
+      onPlayStateChange(p); 
       return !p;
     });
   }, [onPlayStateChange]);
 
+
+  //좋아요 UI 상태를 바꾸고, 실제 이벤트 로깅은 부모(ShortsPlayer)에서
   const handleLike = useCallback(() => {
     const newLiked = !liked;
     setLiked(newLiked);
@@ -69,9 +77,9 @@ export default function VideoCard({
       style={{ backgroundColor: bgColorForIndex(index) }}
       onClick={togglePause}
     >
-      {/* Simulated video area with gradient */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-muted-foreground/30 text-6xl font-bold select-none">
+      {/* Simulated video area with gradient - 가짜 영상 영역 */}
+      <div className="absolute inset-0 flex items-center justify-center">   
+        <div className="text-muted-foreground/30 text-6xl font-bold select-none">   
           {index + 1}
         </div>
       </div>
@@ -111,18 +119,18 @@ export default function VideoCard({
         className="absolute left-3 bottom-6 z-20"
         onClick={(e) => e.stopPropagation()}
       >
-        <VideoInfo
+        <VideoInfo  // 채널명, 설명, 제목 등 하단 정보 표시용
           channelName={video.channel_name}
           profileImage={video.profile_image}
           description={video.description}
           title={video.title}
         />
       </div>
-
-      {/* Progress bar */}
-      <div className="absolute bottom-0 left-0 right-0 h-[3px] z-30">
+      
+      {/* Progress bar */}   
+      <div className="absolute bottom-0 left-0 right-0 h-[3px] z-30"> 
         <div
-          className="h-full bg-foreground transition-all duration-100"
+          className="h-full bg-foreground transition-all duration-100" 
           style={{ width: `${progress}%` }}
         />
       </div>

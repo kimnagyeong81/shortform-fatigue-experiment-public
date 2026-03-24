@@ -1,3 +1,5 @@
+// src/components/shorts/ShortsHeader.tsx
+
 import { Search, Cast } from 'lucide-react';
 
 export default function ShortsHeader() {

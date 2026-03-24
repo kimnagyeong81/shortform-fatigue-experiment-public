@@ -1,3 +1,7 @@
+// src/components/shorts/VideoInfo.tsx
+//영상 아래쪽 정보 영역을 만드는 컴포넌트. 즉, Shorts 화면 하단 왼쪽에 보이는 프로필 이미지, 채널명, 구독 버튼, 영상 제목/설명, 더보기(...more)를 담당.
+
+
 import { useState } from 'react';
 import { User } from 'lucide-react';
 
@@ -14,7 +18,7 @@ export default function VideoInfo({ channelName, profileImage, description, titl
 
   return (
     <div className="flex flex-col gap-3 max-w-[75%]">
-      {/* Channel row */}
+      {/* 프로필 이미지 */}
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center overflow-hidden flex-shrink-0">
           {profileImage ? (
@@ -23,7 +27,7 @@ export default function VideoInfo({ channelName, profileImage, description, titl
             <User className="w-5 h-5 text-muted-foreground" />
           )}
         </div>
-        <span className="text-foreground font-medium text-sm truncate">@{channelName}</span>
+        <span className="text-foreground font-medium text-sm truncate">@{channelName}</span>   {/* 채널명 */}
         <button
           onClick={() => setSubscribed(!subscribed)}
           className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all flex-shrink-0 ${

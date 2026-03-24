@@ -1,12 +1,15 @@
+// src\hooks\useEventLogger.ts
+//참가자와 세션을 만들고, 사용자의 행동 이벤트를 video_events 테이블에 기록하는 DB 로깅 훅 (참가자 생성, 세션 생성, 행동 이벤트를 DB에 저장)
+
 import { useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-type EventType =
+type EventType =  //event_type으로는 이 값들만 기록
   | 'session_start' | 'video_impression' | 'play' | 'pause' | 'resume'
   | 'skip' | 'complete' | 'like' | 'unlike' | 'comment_open'
   | 'share_click' | 'session_end' | 'exit';
 
-interface LogParams {
+interface LogParams {  //logEvent()에 같이 넘길 추가 정보
   videoId?: string;
   playbackPositionSec?: number;
   watchDurationSec?: number;
@@ -14,13 +17,13 @@ interface LogParams {
 }
 
 export function useEventLogger() {
-  const participantId = useRef<string | null>(null);
-  const sessionId = useRef<string | null>(null);
-  const sequenceIndex = useRef(0);
+  const participantId = useRef<string | null>(null);   //현재 참가자 id를 기억
+  const sessionId = useRef<string | null>(null);   //현재 세션 id를 기억
+  const sequenceIndex = useRef(0);   //이벤트 순번을 기록
 
   const initSession = useCallback(async (externalId?: string) => {
-    // Create participant
-    const { data: participant } = await supabase
+    //즉 실험 시작할 때 익명 참가자 하나를 DB에 만듦
+    const { data: participant } = await supabase   
       .from('participants')
       .insert({ external_id: externalId || `anon_${Date.now()}` })
       .select('id')
@@ -29,7 +32,7 @@ export function useEventLogger() {
     if (!participant) return;
     participantId.current = participant.id;
 
-    // Create session
+    //참가자가 실험에 들어올 때 새 세션 row를 생성
     const { data: session } = await supabase
       .from('sessions')
       .insert({ participant_id: participant.id })

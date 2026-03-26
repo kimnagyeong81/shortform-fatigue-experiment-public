@@ -48,7 +48,7 @@ export function useEventLogger() {
     return { participantId: participant.id, sessionId: session.id };
   }, []);
 
-  const logEvent = useCallback(async (eventType: EventType, params?: LogParams) => {
+  const logEvent = useCallback(async (eventType: EventType, params?: LogParams) => {  //모든 행동 로그 저장은 결국 여기로 모임.
     if (!participantId.current || !sessionId.current) return;
 
     const idx = sequenceIndex.current++;
@@ -62,7 +62,7 @@ export function useEventLogger() {
       watch_duration_sec: params?.watchDurationSec ?? 0,
       metadata: params?.metadata ?? {},
     };
-    const { error } = await supabase.from('video_events').insert(row as any);
+    const { error } = await supabase.from('video_events').insert(row as any);    //즉 모든 행동 로그는 결국 여기로 저장됨.
 
     if (error) console.error('Event log error:', error);
   }, []);
@@ -72,7 +72,7 @@ export function useEventLogger() {
     await logEvent('session_end');
     await supabase
       .from('sessions')
-      .update({ ended_at: new Date().toISOString() })
+      .update({ ended_at: new Date().toISOString() })   //ended_at에 종료 시간 기록
       .eq('id', sessionId.current);
   }, [logEvent]);
 

@@ -1,3 +1,5 @@
+-- supabase\migrations\20260319130637_785ed64b-9a21-4a47-af2c-ac8ba514a8b1.sql
+-- DB 생성용 SQL 코드, DB 위치 자체가 아니라, DB 안에 어떤 테이블을 만들지 적어놓은 파일
 
 -- Create participants table
 CREATE TABLE public.participants (

@@ -1,5 +1,5 @@
 //src\hooks\useVideoPlayback.ts
-
+//현재 영상의 재생 시작 시점과 누적 시청시간을 추적해서, 총 시청시간을 초 단위로 계산해주는 훅 (1.재생 시작 시각 기록 2.pause 될 때까지 본 시간을 누적 3. 현재까지 총 몇 초 봤는지 계산 4. 영상이 바뀌면 초기화)
 
 import { useRef, useCallback, useEffect } from 'react';
 
@@ -25,7 +25,7 @@ export function useVideoPlayback(videoId: string) {
     state.current.isPlaying = true;
   }, []);
 
-  const pause = useCallback(() => {
+  const pause = useCallback(() => {    //현재 시각 - 시작 시각 , 즉 pause될 때마다 구간별 시청시간을 합산
     if (state.current.startTime && state.current.isPlaying) {
       state.current.accumulatedWatch += (Date.now() - state.current.startTime) / 1000;
       state.current.startTime = null;
@@ -33,7 +33,7 @@ export function useVideoPlayback(videoId: string) {
     state.current.isPlaying = false;
   }, []);
 
-  const getWatchDuration = useCallback(() => {
+  const getWatchDuration = useCallback(() => {   // 지금까지 총 몇 초 봤는지 계산해서 반환하는 함수
     let total = state.current.accumulatedWatch;
     if (state.current.startTime && state.current.isPlaying) {
       total += (Date.now() - state.current.startTime) / 1000;

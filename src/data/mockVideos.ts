@@ -24,7 +24,7 @@ const bgColors = [
 export const mockVideos: VideoData[] = [
   {
     video_id: 'v1',
-    video_url: '',
+    video_url: '/public/v1.mp4',
     thumbnail: '',
     title: 'Amazing sunset timelapse over the ocean 🌅',
     description: 'Watch this incredible sunset captured in 4K. The colors are unreal! #sunset #nature #timelapse',

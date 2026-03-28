@@ -1,48 +1,58 @@
-// src/components/shorts/ShortsPlayer.tsx 숏폼 피드 전체를 관리하면서, 사용자의 시청 흐름과 행동 이벤트를 DB 로깅 함수와 연결하는 중심 컴포넌트
+// src/components/shorts/ShortsPlayer.tsx
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import ShortsHeader from './ShortsHeader';
 import VideoCard from './VideoCard';
 import { useEventLogger } from '@/hooks/useEventLogger';
 import { useVideoPlayback } from '@/hooks/useVideoPlayback';
-import { mockVideos, type VideoData } from '@/data/mockVideos';
+import { mockVideos } from '@/data/mockVideos';
 
 export default function ShortsPlayer() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const feedRef = useRef<HTMLDivElement>(null);
   const { initSession, logEvent, endSession } = useEventLogger();
   const currentVideo = mockVideos[currentIndex];
-  const playback = useVideoPlayback(currentVideo.video_id);
+  const playback = useVideoPlayback();
   const prevIndexRef = useRef(0);
   const initializedRef = useRef(false);
 
-  
-  useEffect(() => {                             //실험 시작 시점과 종료 시점을 잡는 코드
+  // 세션 시작 + 첫 영상 impression
+  useEffect(() => {
     if (initializedRef.current) return;
     initializedRef.current = true;
-    initSession().then(() => {
-      logEvent('video_impression', { videoId: mockVideos[0].video_id });  //“첫 영상이 화면에 보였다” 기록
-      playback.play();  // 첫 영상 시청시간 계산 시작
+
+    initSession().then((res) => {
+      console.log('initSession done:', res);
+      console.log('first video impression:', mockVideos[0].video_id);
+
+      logEvent('video_impression', { videoId: mockVideos[0].video_id });
+      playback.play();
     });
 
-    const handleBeforeUnload = () => { 
+    const handleBeforeUnload = () => {
+      console.log('before unload');
       playback.pause();
       endSession();
     };
+
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, []);
+  }, [initSession, logEvent, playback, endSession]);
 
- 
-  useEffect(() => {                 // 사용자가 위아래로 넘겼을 때, 현재 보고 있는 영상 번호를 계산하는 코드
+  // 스크롤해서 현재 영상 index 계산
+  useEffect(() => {
     const feed = feedRef.current;
     if (!feed) return;
 
     let scrollTimeout: ReturnType<typeof setTimeout>;
+
     const handleScroll = () => {
       clearTimeout(scrollTimeout);
+
       scrollTimeout = setTimeout(() => {
-        const idx = Math.round(feed.scrollTop / feed.clientHeight);              // 현재 스크롤 위치를 화면 높이로 나눠서 몇 번째 영상인지 계산
+        const idx = Math.round(feed.scrollTop / feed.clientHeight);
+        console.log('scroll idx:', idx, 'currentIndex:', currentIndex);
+
         if (idx !== currentIndex && idx >= 0 && idx < mockVideos.length) {
           setCurrentIndex(idx);
         }
@@ -53,60 +63,89 @@ export default function ShortsPlayer() {
     return () => feed.removeEventListener('scroll', handleScroll);
   }, [currentIndex]);
 
-  // 영상이 바뀔 때 skip/complete 기록
+  // 영상 바뀔 때 이전 영상 skip/complete 저장
   useEffect(() => {
     if (prevIndexRef.current !== currentIndex) {
-      const watchDur = playback.getWatchDuration();    // 이전 영상을 몇 초 봤는지 가져옴
+      const watchDur = playback.getWatchDuration();
       const prevVideo = mockVideos[prevIndexRef.current];
-      const completed = watchDur >= prevVideo.duration_sec * 0.9;   //이전 영상 길이의 90% 이상 봤으면 complete
+      const completed = watchDur >= prevVideo.duration_sec * 0.9;
 
-      // Log skip/complete for previous video
-      logEvent(completed ? 'complete' : 'skip', {     // 그걸 DB에 기록
-        videoId: prevVideo.video_id,  
+      console.log('video changed');
+      console.log('prevIndex:', prevIndexRef.current);
+      console.log('currentIndex:', currentIndex);
+      console.log('prevVideoId:', prevVideo.video_id);
+      console.log('watchDur:', watchDur);
+      console.log('event type:', completed ? 'complete' : 'skip');
+
+      logEvent(completed ? 'complete' : 'skip', {
+        videoId: prevVideo.video_id,
         watchDurationSec: watchDur,
         playbackPositionSec: watchDur,
       });
 
       prevIndexRef.current = currentIndex;
+
       playback.reset();
       playback.play();
 
-      // Log impression for new video
+      console.log('new video impression:', mockVideos[currentIndex].video_id);
       logEvent('video_impression', { videoId: mockVideos[currentIndex].video_id });
     }
-  }, [currentIndex]);
+  }, [currentIndex, playback, logEvent]);
 
-  const handlePlayStateChange = useCallback((playing: boolean) => {     // 영상 카드에서 재생 상태가 바뀌면 호출되는 함수
-    if (playing) {
-      playback.play();
-      logEvent('play', { videoId: currentVideo.video_id });
-    } else {
-      playback.pause();
-      logEvent('pause', {
-        videoId: currentVideo.video_id,
-        watchDurationSec: playback.getWatchDuration(),
-      });
-    }
-  }, [currentVideo.video_id, playback, logEvent]);
+  // play / pause 이벤트 저장
+  const handlePlayStateChange = useCallback(
+    (playing: boolean) => {
+      console.log('handlePlayStateChange:', playing, currentVideo.video_id);
 
+      if (playing) {
+        playback.play();
+        logEvent('play', { videoId: currentVideo.video_id });
+      } else {
+        playback.pause();
+        const dur = playback.getWatchDuration();
 
-  //좋아요/댓글/공유 이벤트
-  const handleLike = useCallback((videoId: string, liked: boolean) => {
-    logEvent(liked ? 'like' : 'unlike', { videoId });
-  }, [logEvent]);
+        console.log('pause duration:', dur);
 
-  const handleComment = useCallback((videoId: string) => {
-    logEvent('comment_open', { videoId });
-  }, [logEvent]);
+        logEvent('pause', {
+          videoId: currentVideo.video_id,
+          watchDurationSec: dur,
+        });
+      }
+    },
+    [currentVideo.video_id, playback, logEvent]
+  );
 
-  const handleShare = useCallback((videoId: string) => {
-    logEvent('share_click', { videoId });
-  }, [logEvent]);
+  // 좋아요 / 댓글 / 공유 이벤트 저장
+  const handleLike = useCallback(
+    (videoId: string, liked: boolean) => {
+      console.log('like event:', videoId, liked);
+      logEvent(liked ? 'like' : 'unlike', { videoId });
+    },
+    [logEvent]
+  );
 
+  const handleComment = useCallback(
+    (videoId: string) => {
+      console.log('comment event:', videoId);
+      logEvent('comment_open', { videoId });
+    },
+    [logEvent]
+  );
 
-  //화면 렌더링 부분 -> 보이는 영상만 실제 추적 대상으로 만들고 있음
+  const handleShare = useCallback(
+    (videoId: string) => {
+      console.log('share event:', videoId);
+      logEvent('share_click', { videoId });
+    },
+    [logEvent]
+  );
+
   return (
-    <div className="relative w-full h-screen max-w-md mx-auto overflow-hidden" style={{ backgroundColor: 'hsl(var(--shorts-bg))' }}>
+    <div
+      className="relative w-full h-screen max-w-md mx-auto overflow-hidden"
+      style={{ backgroundColor: 'hsl(var(--shorts-bg))' }}
+    >
       <ShortsHeader />
 
       <div

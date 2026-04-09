@@ -23,7 +23,7 @@ const bgColors = [
 
 export const mockVideos: VideoData[] = [
   {
-    video_id: 'v1',
+    video_id: '59e1224b-a56a-4ed4-989e-db56ae5a179f',
     video_url: '/public/v1.mp4',
     thumbnail: '',
     title: '',
@@ -37,7 +37,7 @@ export const mockVideos: VideoData[] = [
     order_index: 0,
   },
   {
-    video_id: 'v2',
+    video_id: '4258aee8-d89b-4624-a5ec-c8d64a4f1dd7',
     video_url: '/public/v2.mp4',
     thumbnail: '',
     title: '',
@@ -51,7 +51,7 @@ export const mockVideos: VideoData[] = [
     order_index: 1,
   },
   {
-    video_id: 'v3',
+    video_id: 'ce057e56-d831-4d28-96a6-37076b2bcc42',
     video_url: '/public/v3.mp4',
     thumbnail: '',
     title: '',
@@ -65,7 +65,7 @@ export const mockVideos: VideoData[] = [
     order_index: 2,
   },
   {
-    video_id: 'v4',
+    video_id: '5d57ddfa-ad46-4bde-a868-b78a56344735',
     video_url: '/public/v4.mp4',
     thumbnail: '',
     title: '',
@@ -79,7 +79,7 @@ export const mockVideos: VideoData[] = [
     order_index: 3,
   },
   {
-    video_id: 'v5',
+    video_id: '6d89e998-c63b-4b18-be91-ad1afbe5377f',
     video_url: '/public/v5.mp4',
     thumbnail: '',
     title: '',

@@ -1,5 +1,3 @@
-// src/components/shorts/VideoCard.tsx
-
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Play } from 'lucide-react';
 import VideoActions from './VideoActions';
@@ -13,7 +11,7 @@ interface VideoCardProps {
   onLike: (videoId: string, liked: boolean) => void;
   onComment: (videoId: string) => void;
   onShare: (videoId: string) => void;
-  onPlayStateChange: (playing: boolean) => void;
+  onPlayStateChange: (videoId: string, playing: boolean) => void;
 }
 
 export default function VideoCard({
@@ -31,37 +29,28 @@ export default function VideoCard({
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // 현재 카드가 활성화되면 재생, 비활성화되면 정지
+  // 자동 재생/정지는 처리하되, 부모에 play/pause 이벤트는 보내지 않음
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
 
-    // 현재 화면에 보이는 카드
     if (isActive) {
       if (!paused) {
-        el.play().then(() => {
-          onPlayStateChange(true);
-        }).catch((err) => {
+        el.play().catch((err) => {
           console.log('video play blocked:', err);
         });
       } else {
         el.pause();
-        onPlayStateChange(false);
       }
     } else {
-      // 화면에서 벗어난 카드는 멈춤 + 처음으로 되돌림 + 진행바 초기화
       el.pause();
       el.currentTime = 0;
       setProgress(0);
-
-      // 다음에 다시 활성화되면 자동 재생되도록 paused도 false로 돌려둠
       setPaused(false);
-
-      onPlayStateChange(false);
     }
-  }, [isActive, paused, onPlayStateChange]);
+  }, [isActive, paused]);
 
-  // 영상 클릭 시 일시정지 / 재생 전환
+  // 사용자가 직접 탭했을 때만 부모에 알림
   const togglePause = useCallback(() => {
     const el = videoRef.current;
     if (!el || !isActive) return;
@@ -71,20 +60,18 @@ export default function VideoCard({
 
       if (nextPaused) {
         el.pause();
-        onPlayStateChange(false);
+        onPlayStateChange(video.video_id, false);
       } else {
-        el.play().then(() => {
-          onPlayStateChange(true);
-        }).catch((err) => {
+        el.play().catch((err) => {
           console.log('video play blocked:', err);
         });
+        onPlayStateChange(video.video_id, true);
       }
 
       return nextPaused;
     });
-  }, [isActive, onPlayStateChange]);
+  }, [isActive, onPlayStateChange, video.video_id]);
 
-  // 좋아요 UI 상태 변경 + 부모에 전달
   const handleLike = useCallback(() => {
     const newLiked = !liked;
     setLiked(newLiked);
@@ -97,7 +84,6 @@ export default function VideoCard({
       style={{ backgroundColor: bgColorForIndex(index) }}
       onClick={togglePause}
     >
-      {/* 실제 영상 영역 */}
       <video
         ref={videoRef}
         src={video.video_url}
@@ -113,7 +99,6 @@ export default function VideoCard({
         }}
       />
 
-      {/* Pause indicator */}
       {paused && isActive && (
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <div className="w-16 h-16 rounded-full bg-background/30 flex items-center justify-center backdrop-blur-sm">
@@ -122,10 +107,8 @@ export default function VideoCard({
         </div>
       )}
 
-      {/* Bottom gradient overlay */}
       <div className="absolute bottom-0 left-0 right-0 h-60 bg-gradient-to-t from-black/80 to-transparent pointer-events-none" />
 
-      {/* Actions (right side) */}
       <div
         className="absolute right-3 bottom-28 z-20"
         onClick={(e) => e.stopPropagation()}
@@ -143,7 +126,6 @@ export default function VideoCard({
         />
       </div>
 
-      {/* Video info (bottom) */}
       <div
         className="absolute left-3 bottom-6 z-20"
         onClick={(e) => e.stopPropagation()}
@@ -156,7 +138,6 @@ export default function VideoCard({
         />
       </div>
 
-      {/* Progress bar */}
       <div className="absolute bottom-0 left-0 right-0 h-[3px] z-30">
         <div
           className="h-full bg-foreground transition-all duration-100"

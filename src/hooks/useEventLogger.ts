@@ -1,80 +1,171 @@
-// src\hooks\useEventLogger.ts
-//참가자와 세션을 만들고, 사용자의 행동 이벤트를 video_events 테이블에 기록하는 DB 로깅 훅 (참가자 생성, 세션 생성, 행동 이벤트를 DB에 저장)
+// src/hooks/useEventLogger.ts
+// MongoDB Atlas 저장용 로깅 훅
+// React 앱에서 발생한 세션/행동 로그를 FastAPI로 보내고,
+// FastAPI가 MongoDB Atlas의 sessions, video_events 컬렉션에 저장한다.
 
 import { useCallback, useRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
-type EventType =  //event_type으로는 이 값들만 기록
-  | 'session_start' | 'video_impression' | 'play' | 'pause' | 'resume'
-  | 'skip' | 'complete' | 'like' | 'unlike' | 'comment_open'
-  | 'share_click' | 'session_end' | 'exit';
+type EventType =
+  | 'session_start'
+  | 'video_impression'
+  | 'play'
+  | 'pause'
+  | 'resume'
+  | 'skip'
+  | 'complete'
+  | 'like'
+  | 'unlike'
+  | 'comment_open'
+  | 'share_click'
+  | 'session_end'
+  | 'exit';
 
-interface LogParams {  //logEvent()에 같이 넘길 추가 정보
+interface LogParams {
   videoId?: string;
   playbackPositionSec?: number;
   watchDurationSec?: number;
   metadata?: Record<string, unknown>;
 }
 
+// .env에 VITE_API_BASE_URL=http://127.0.0.1:8000 을 넣으면 그 값을 쓰고,
+// 없으면 기본값으로 로컬 FastAPI 서버를 사용한다.
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000';
+
+function getDeviceType() {
+  return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    ? 'mobile'
+    : 'desktop';
+}
+
 export function useEventLogger() {
-  const participantId = useRef<string | null>(null);   //현재 참가자 id를 기억
-  const sessionId = useRef<string | null>(null);   //현재 세션 id를 기억
-  const sequenceIndex = useRef(0);   //이벤트 순번을 기록
+  const participantId = useRef<string | null>(null);
+  const sessionId = useRef<string | null>(null);
+  const sequenceIndex = useRef(0);
+  const initialized = useRef(false);
 
-  const initSession = useCallback(async (externalId?: string) => {
-    //즉 실험 시작할 때 익명 참가자 하나를 DB에 만듦
-    const { data: participant } = await supabase   
-      .from('participants')
-      .insert({ external_id: externalId || `anon_${Date.now()}` })
-      .select('id')
-      .single();
+  const sendEventToServer = useCallback(async (eventDoc: Record<string, unknown>) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(eventDoc),
+      });
 
-    if (!participant) return;
-    participantId.current = participant.id;
-
-    //참가자가 실험에 들어올 때 새 세션 row를 생성
-    const { data: session } = await supabase
-      .from('sessions')
-      .insert({ participant_id: participant.id })
-      .select('id')
-      .single();
-
-    if (!session) return;
-    sessionId.current = session.id;
-    sequenceIndex.current = 0;
-
-    // Log session_start
-    await logEvent('session_start');
-    return { participantId: participant.id, sessionId: session.id };
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Event log error:', response.status, errorText);
+      }
+    } catch (error) {
+      console.error('Event log network error:', error);
+    }
   }, []);
 
-  const logEvent = useCallback(async (eventType: EventType, params?: LogParams) => {  //모든 행동 로그 저장은 결국 여기로 모임.
-    if (!participantId.current || !sessionId.current) return;
+  const logEvent = useCallback(
+    async (eventType: EventType, params?: LogParams) => {
+      if (!participantId.current || !sessionId.current) {
+        console.warn('Event ignored because session is not initialized:', eventType);
+        return;
+      }
 
-    const idx = sequenceIndex.current++;
-    const row: Record<string, unknown> = {
-      participant_id: participantId.current,
-      session_id: sessionId.current,
-      video_id: params?.videoId || null,
-      sequence_index: idx,
-      event_type: eventType,
-      playback_position_sec: params?.playbackPositionSec ?? 0,
-      watch_duration_sec: params?.watchDurationSec ?? 0,
-      metadata: params?.metadata ?? {},
-    };
-    const { error } = await supabase.from('video_events').insert(row as any);    //즉 모든 행동 로그는 결국 여기로 저장됨.
+      const eventDoc = {
+        participant_id: participantId.current,
+        session_id: sessionId.current,
+        video_id: params?.videoId ?? null,
+        sequence_index: sequenceIndex.current++,
+        event_type: eventType,
+        playback_position_sec: params?.playbackPositionSec ?? null,
+        watch_duration_sec: params?.watchDurationSec ?? null,
+        metadata: params?.metadata ?? {},
+      };
 
-    if (error) console.error('Event log error:', error);
-  }, []);
+      await sendEventToServer(eventDoc);
+    },
+    [sendEventToServer]
+  );
+
+  const initSession = useCallback(
+    async (externalId?: string) => {
+      if (initialized.current) {
+        return {
+          participantId: participantId.current,
+          sessionId: sessionId.current,
+        };
+      }
+
+      initialized.current = true;
+
+      const newParticipantId = externalId || `anon_${Date.now()}`;
+      const newSessionId = `session_${Date.now()}`;
+
+      participantId.current = newParticipantId;
+      sessionId.current = newSessionId;
+      sequenceIndex.current = 0;
+
+      const sessionDoc = {
+        participant_id: newParticipantId,
+        session_id: newSessionId,
+        metadata: {
+          experiment_version: 'v1',
+          device: getDeviceType(),
+          user_agent: navigator.userAgent,
+          screen_width: window.innerWidth,
+          screen_height: window.innerHeight,
+        },
+      };
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(sessionDoc),
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Session creation error:', response.status, errorText);
+        }
+      } catch (error) {
+        console.error('Session creation network error:', error);
+      }
+
+      await logEvent('session_start', {
+        metadata: {
+          experiment_version: 'v1',
+          device: getDeviceType(),
+          user_agent: navigator.userAgent,
+          screen_width: window.innerWidth,
+          screen_height: window.innerHeight,
+        },
+      });
+
+      return {
+        participantId: newParticipantId,
+        sessionId: newSessionId,
+      };
+    },
+    [logEvent]
+  );
 
   const endSession = useCallback(async () => {
-    if (!sessionId.current) return;
-    await logEvent('session_end');
-    await supabase
-      .from('sessions')
-      .update({ ended_at: new Date().toISOString() })   //ended_at에 종료 시간 기록
-      .eq('id', sessionId.current);
+    if (!participantId.current || !sessionId.current) return;
+
+    await logEvent('session_end', {
+      metadata: {
+        ended_at_client: new Date().toISOString(),
+      },
+    });
   }, [logEvent]);
 
-  return { initSession, logEvent, endSession, participantId, sessionId };
+  return {
+    initSession,
+    logEvent,
+    endSession,
+    participantId,
+    sessionId,
+  };
 }

@@ -8,8 +8,10 @@ import { mockVideos } from '@/data/mockVideos';
 export default function ShortsPlayer() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const feedRef = useRef<HTMLDivElement>(null);
+
   const { initSession, logEvent, endSession } = useEventLogger();
-  const playback = useVideoPlayback();
+  const { play, pause, getWatchDuration, reset } = useVideoPlayback();
+
   const prevIndexRef = useRef(0);
   const initializedRef = useRef(false);
 
@@ -17,19 +19,36 @@ export default function ShortsPlayer() {
     if (initializedRef.current) return;
     initializedRef.current = true;
 
-    initSession().then(() => {
-      logEvent('video_impression', { videoId: mockVideos[0].video_id });
-      playback.play();
-    });
+    const startExperiment = async () => {
+      await initSession();
+
+      const firstVideo = mockVideos[0];
+
+      await logEvent('video_impression', {
+        videoId: firstVideo.video_id,
+        metadata: {
+          video_index: 0,
+          order_index: firstVideo.order_index,
+          duration_sec: firstVideo.duration_sec,
+        },
+      });
+
+      play();
+    };
+
+    startExperiment();
 
     const handleBeforeUnload = () => {
-      playback.pause();
+      pause();
       endSession();
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [initSession, logEvent, playback, endSession]);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [initSession, logEvent, play, pause, endSession]);
 
   useEffect(() => {
     const feed = feedRef.current;
@@ -50,68 +69,115 @@ export default function ShortsPlayer() {
     };
 
     feed.addEventListener('scroll', handleScroll, { passive: true });
-    return () => feed.removeEventListener('scroll', handleScroll);
+
+    return () => {
+      clearTimeout(scrollTimeout);
+      feed.removeEventListener('scroll', handleScroll);
+    };
   }, [currentIndex]);
 
   useEffect(() => {
-    if (prevIndexRef.current !== currentIndex) {
-      playback.pause();
+    if (prevIndexRef.current === currentIndex) return;
 
-      const watchDur = playback.getWatchDuration();
-      const prevVideo = mockVideos[prevIndexRef.current];
-      const completed = watchDur >= prevVideo.duration_sec * 0.9;
+    pause();
 
-      logEvent(completed ? 'complete' : 'skip', {
-        videoId: prevVideo.video_id,
-        watchDurationSec: watchDur,
-        playbackPositionSec: watchDur,
-      });
+    const fromIndex = prevIndexRef.current;
+    const toIndex = currentIndex;
 
-      prevIndexRef.current = currentIndex;
+    const prevVideo = mockVideos[fromIndex];
+    const currentVideo = mockVideos[toIndex];
 
-      playback.reset();
-      playback.play();
+    const watchDur = getWatchDuration();
+    const completedRatio =
+      prevVideo.duration_sec > 0 ? watchDur / prevVideo.duration_sec : 0;
+    const completed = completedRatio >= 0.9;
 
-      logEvent('video_impression', { videoId: mockVideos[currentIndex].video_id });
-    }
-  }, [currentIndex, playback, logEvent]);
+    logEvent(completed ? 'complete' : 'skip', {
+      videoId: prevVideo.video_id,
+      watchDurationSec: watchDur,
+      playbackPositionSec: watchDur,
+      metadata: {
+        from_video_id: prevVideo.video_id,
+        to_video_id: currentVideo.video_id,
+        from_video_index: fromIndex,
+        to_video_index: toIndex,
+        direction: toIndex > fromIndex ? 'down' : 'up',
+        is_back_navigation: toIndex < fromIndex,
+        video_duration_sec: prevVideo.duration_sec,
+        completed_ratio: Math.round(completedRatio * 1000) / 1000,
+      },
+    });
+
+    prevIndexRef.current = currentIndex;
+
+    reset();
+    play();
+
+    logEvent('video_impression', {
+      videoId: currentVideo.video_id,
+      metadata: {
+        video_index: toIndex,
+        order_index: currentVideo.order_index,
+        duration_sec: currentVideo.duration_sec,
+      },
+    });
+  }, [currentIndex, pause, getWatchDuration, reset, play, logEvent]);
 
   const handlePlayStateChange = useCallback(
     (videoId: string, playing: boolean) => {
       if (playing) {
-        playback.play();
-        logEvent('play', { videoId });
+        play();
+
+        logEvent('play', {
+          videoId,
+          metadata: {
+            source: 'user_tap',
+          },
+        });
       } else {
-        playback.pause();
-        const dur = playback.getWatchDuration();
+        pause();
+
+        const dur = getWatchDuration();
 
         logEvent('pause', {
           videoId,
           watchDurationSec: dur,
           playbackPositionSec: dur,
+          metadata: {
+            source: 'user_tap',
+          },
         });
       }
     },
-    [playback, logEvent]
+    [play, pause, getWatchDuration, logEvent]
   );
 
   const handleLike = useCallback(
     (videoId: string, liked: boolean) => {
-      logEvent(liked ? 'like' : 'unlike', { videoId });
+      logEvent(liked ? 'like' : 'unlike', {
+        videoId,
+        metadata: {
+          liked,
+        },
+      });
     },
     [logEvent]
   );
 
   const handleComment = useCallback(
     (videoId: string) => {
-      logEvent('comment_open', { videoId });
+      logEvent('comment_open', {
+        videoId,
+      });
     },
     [logEvent]
   );
 
   const handleShare = useCallback(
     (videoId: string) => {
-      logEvent('share_click', { videoId });
+      logEvent('share_click', {
+        videoId,
+      });
     },
     [logEvent]
   );

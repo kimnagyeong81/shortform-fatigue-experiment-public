@@ -1,5 +1,4 @@
-///short-feed-explorer/src/data/mockVideos.ts
-
+// src/data/mockVideos.ts
 
 export interface VideoData {
   video_id: string;
@@ -18,13 +17,17 @@ export interface VideoData {
 
 // Placeholder colors for mock video backgrounds
 const bgColors = [
-  '#1a1a2e', '#16213e', '#0f3460', '#1b1b2f', '#162447',
+  '#1a1a2e',
+  '#16213e',
+  '#0f3460',
+  '#1b1b2f',
+  '#162447',
 ];
 
 export const mockVideos: VideoData[] = [
   {
     video_id: '59e1224b-a56a-4ed4-989e-db56ae5a179f',
-    video_url: '/public/v1.mp4',
+    video_url: '/v1.mp4',
     thumbnail: '',
     title: '',
     description: '고양이가 스라소니를 구했습니다... 몇 년 후, 스라소니가 돌아왔습니다.',
@@ -38,7 +41,7 @@ export const mockVideos: VideoData[] = [
   },
   {
     video_id: '4258aee8-d89b-4624-a5ec-c8d64a4f1dd7',
-    video_url: '/public/v2.mp4',
+    video_url: '/v2.mp4',
     thumbnail: '',
     title: '',
     description: '이수근: 코미디언이 새벽에 수영장 가요?',
@@ -52,7 +55,7 @@ export const mockVideos: VideoData[] = [
   },
   {
     video_id: 'ce057e56-d831-4d28-96a6-37076b2bcc42',
-    video_url: '/public/v3.mp4',
+    video_url: '/v3.mp4',
     thumbnail: '',
     title: '',
     description: '동기지만 배우 서열은 다르지~',
@@ -66,7 +69,7 @@ export const mockVideos: VideoData[] = [
   },
   {
     video_id: '5d57ddfa-ad46-4bde-a868-b78a56344735',
-    video_url: '/public/v4.mp4',
+    video_url: '/v4.mp4',
     thumbnail: '',
     title: '',
     description: '"넌 왜 세금 많이 내냐" 연예인 잘 몰랐던 김선영🤣 | 라디오스타 | TVPP | MBC 161214 방송',
@@ -80,7 +83,7 @@ export const mockVideos: VideoData[] = [
   },
   {
     video_id: '6d89e998-c63b-4b18-be91-ad1afbe5377f',
-    video_url: '/public/v5.mp4',
+    video_url: '/v5.mp4',
     thumbnail: '',
     title: '',
     description: '홀린듯이 보게 되는 고민시 #런닝맨',

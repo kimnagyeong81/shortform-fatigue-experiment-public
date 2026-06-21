@@ -8,6 +8,8 @@ import { useCallback, useRef } from 'react';
 type EventType =
   | 'session_start'
   | 'video_impression'
+  | 'video_progress'
+  | 'swipe'
   | 'play'
   | 'pause'
   | 'resume'
@@ -15,8 +17,10 @@ type EventType =
   | 'complete'
   | 'like'
   | 'unlike'
+  | 'dislike'
   | 'comment_open'
   | 'share_click'
+  | 'more_click'
   | 'session_end'
   | 'exit';
 
@@ -27,15 +31,33 @@ interface LogParams {
   metadata?: Record<string, unknown>;
 }
 
-// .env에 VITE_API_BASE_URL=http://127.0.0.1:8000 을 넣으면 그 값을 쓰고,
-// 없으면 기본값으로 로컬 FastAPI 서버를 사용한다.
+interface SessionResult {
+  participantId: string | null;
+  sessionId: string | null;
+}
+
+// Vercel 배포 환경에서는 VITE_API_BASE_URL 값을 사용하고,
+// 로컬 개발 환경에서는 http://127.0.0.1:8000 을 사용한다.
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000';
+
+console.log('[useEventLogger] API_BASE_URL:', API_BASE_URL);
 
 function getDeviceType() {
   return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
     ? 'mobile'
     : 'desktop';
+}
+
+function createBaseMetadata() {
+  return {
+    experiment_version: 'v1',
+    device: getDeviceType(),
+    user_agent: navigator.userAgent,
+    screen_width: window.innerWidth,
+    screen_height: window.innerHeight,
+    page_url: window.location.href,
+  };
 }
 
 export function useEventLogger() {
@@ -44,29 +66,45 @@ export function useEventLogger() {
   const sequenceIndex = useRef(0);
   const initialized = useRef(false);
 
-  const sendEventToServer = useCallback(async (eventDoc: Record<string, unknown>) => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/events`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(eventDoc),
-      });
+  const sendEventToServer = useCallback(
+    async (eventDoc: Record<string, unknown>) => {
+      const url = `${API_BASE_URL}/events`;
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Event log error:', response.status, errorText);
+      console.log('[useEventLogger] Sending event:', url, eventDoc);
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(eventDoc),
+        });
+
+        console.log('[useEventLogger] Event response status:', response.status);
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error(
+            '[useEventLogger] Event log error:',
+            response.status,
+            errorText
+          );
+        }
+      } catch (error) {
+        console.error('[useEventLogger] Event log network error:', error);
       }
-    } catch (error) {
-      console.error('Event log network error:', error);
-    }
-  }, []);
+    },
+    []
+  );
 
   const logEvent = useCallback(
     async (eventType: EventType, params?: LogParams) => {
       if (!participantId.current || !sessionId.current) {
-        console.warn('Event ignored because session is not initialized:', eventType);
+        console.warn(
+          '[useEventLogger] Event ignored because session is not initialized:',
+          eventType
+        );
         return;
       }
 
@@ -87,8 +125,15 @@ export function useEventLogger() {
   );
 
   const initSession = useCallback(
-    async (externalId?: string) => {
+    async (externalId?: string): Promise<SessionResult> => {
+      console.log('[useEventLogger] initSession called');
+
       if (initialized.current) {
+        console.log('[useEventLogger] Session already initialized:', {
+          participantId: participantId.current,
+          sessionId: sessionId.current,
+        });
+
         return {
           participantId: participantId.current,
           sessionId: sessionId.current,
@@ -97,27 +142,28 @@ export function useEventLogger() {
 
       initialized.current = true;
 
-      const newParticipantId = externalId || `anon_${Date.now()}`;
-      const newSessionId = `session_${Date.now()}`;
+      const now = Date.now();
+      const newParticipantId = externalId || `anon_${now}`;
+      const newSessionId = `session_${now}`;
 
       participantId.current = newParticipantId;
       sessionId.current = newSessionId;
       sequenceIndex.current = 0;
 
+      const baseMetadata = createBaseMetadata();
+
       const sessionDoc = {
         participant_id: newParticipantId,
         session_id: newSessionId,
-        metadata: {
-          experiment_version: 'v1',
-          device: getDeviceType(),
-          user_agent: navigator.userAgent,
-          screen_width: window.innerWidth,
-          screen_height: window.innerHeight,
-        },
+        metadata: baseMetadata,
       };
 
+      const sessionUrl = `${API_BASE_URL}/sessions`;
+
+      console.log('[useEventLogger] Creating session:', sessionUrl, sessionDoc);
+
       try {
-        const response = await fetch(`${API_BASE_URL}/sessions`, {
+        const response = await fetch(sessionUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -125,34 +171,48 @@ export function useEventLogger() {
           body: JSON.stringify(sessionDoc),
         });
 
+        console.log('[useEventLogger] Session response status:', response.status);
+
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('Session creation error:', response.status, errorText);
+          console.error(
+            '[useEventLogger] Session creation error:',
+            response.status,
+            errorText
+          );
         }
       } catch (error) {
-        console.error('Session creation network error:', error);
+        console.error('[useEventLogger] Session creation network error:', error);
       }
 
-      await logEvent('session_start', {
-        metadata: {
-          experiment_version: 'v1',
-          device: getDeviceType(),
-          user_agent: navigator.userAgent,
-          screen_width: window.innerWidth,
-          screen_height: window.innerHeight,
-        },
-      });
+      // session_start는 logEvent를 거치지 않고 직접 생성한다.
+      // initSession 직후 첫 로그가 무시되는 문제를 막기 위함.
+      const sessionStartEvent = {
+        participant_id: newParticipantId,
+        session_id: newSessionId,
+        video_id: null,
+        sequence_index: sequenceIndex.current++,
+        event_type: 'session_start',
+        playback_position_sec: null,
+        watch_duration_sec: null,
+        metadata: baseMetadata,
+      };
+
+      await sendEventToServer(sessionStartEvent);
 
       return {
         participantId: newParticipantId,
         sessionId: newSessionId,
       };
     },
-    [logEvent]
+    [sendEventToServer]
   );
 
   const endSession = useCallback(async () => {
-    if (!participantId.current || !sessionId.current) return;
+    if (!participantId.current || !sessionId.current) {
+      console.warn('[useEventLogger] endSession ignored: no active session');
+      return;
+    }
 
     await logEvent('session_end', {
       metadata: {

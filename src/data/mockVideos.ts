@@ -24,622 +24,123 @@ const bgColors = [
   '#162447',
 ];
 
-const videoMetadata = [
-  // 1
-  {
-    thumbnail: '',
-    title: '',
+type VideoMeta = {
+  thumbnail: string;
+  title: string;
+  description: string;
+  channel_name: string;
+  profile_image: string;
+};
+
+// 여기에서 description, channel_name 등을 영상별로 수정하시면 됩니다.
+const customMetadata: Record<number, Partial<VideoMeta>> = {
+  1: {
     description: '고양이가 스라소니를 구했습니다... 몇 년 후, 스라소니가 돌아왔습니다.',
     channel_name: '놀란사실.2',
-    profile_image: '',
-    like_count: 45200,
-    comment_count: 1230,
-    share_count: 890,
-    duration_sec: 30,
   },
-  // 2
-  {
-    thumbnail: '',
-    title: '',
+  2: {
     description: '이수근: 코미디언이 새벽에 수영장 가요?',
     channel_name: 'esports',
-    profile_image: '',
-    like_count: 23100,
-    comment_count: 567,
-    share_count: 432,
-    duration_sec: 45,
   },
-  // 3
-  {
-    thumbnail: '',
-    title: '',
+  3: {
     description: '동기지만 배우 서열은 다르지~',
     channel_name: 'tvNJoy',
-    profile_image: '',
-    like_count: 98700,
-    comment_count: 3450,
-    share_count: 5670,
-    duration_sec: 58,
   },
-  // 4
-  {
-    thumbnail: '',
-    title: '',
+  4: {
     description: '"넌 왜 세금 많이 내냐" 연예인 잘 몰랐던 김선영🤣 | 라디오스타 | TVPP | MBC 161214 방송',
     channel_name: 'TVPeople',
-    profile_image: '',
-    like_count: 67400,
-    comment_count: 2100,
-    share_count: 1890,
-    duration_sec: 35,
   },
-  // 5
-  {
-    thumbnail: '',
-    title: '',
+  5: {
     description: '홀린듯이 보게 되는 고민시 #런닝맨',
     channel_name: 'BBACKENT',
-    profile_image: '',
-    like_count: 156000,
-    comment_count: 8900,
-    share_count: 12300,
-    duration_sec: 22,
   },
-  // 6
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 7
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 8
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 9
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 10
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 11
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 12
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 13
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 14
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 15
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 16
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 17
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 18
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 19
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 20
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 21
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 22
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 23
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 24
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 25
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 26
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 27
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 28
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 29
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 30
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 31
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 32
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 33
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 34
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 35
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 36
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 37
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 38
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 39
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 40
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 41
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 42
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 43
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 44
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 45
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 46
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 47
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 48
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 49
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-  // 50
-  {
-    thumbnail: '',
-    title: '',
-    description: '저를 바꿔주세요',
-    channel_name: '저를 바꿔주세요',
-    profile_image: '',
-    like_count: 0,
-    comment_count: 0,
-    share_count: 0,
-    duration_sec: 0,
-  },
-];
 
-export const mockVideos: VideoData[] = videoMetadata.map((video, index) => ({
-  video_id: `video-${String(index + 1).padStart(2, '0')}`,
-  video_url: `/v${index + 1}.mp4`,
-  thumbnail: video.thumbnail,
-  title: video.title,
-  description: video.description,
-  channel_name: video.channel_name,
-  profile_image: video.profile_image,
-  like_count: video.like_count,
-  comment_count: video.comment_count,
-  share_count: video.share_count,
-  duration_sec: video.duration_sec,
-  order_index: index,
-}));
+  // 6번부터 50번까지는 아래처럼 필요할 때 추가로 수정하면 됩니다.
+  // 6: {
+  //   description: '6번 영상 설명',
+  //   channel_name: '채널명',
+  // },
+};
+
+// 정수 난수 생성 함수
+const randomInt = (min: number, max: number): number => {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+};
+
+// 실제 영상 길이 가져오기
+const getVideoDuration = (videoUrl: string): Promise<number> => {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+
+    video.preload = 'metadata';
+    video.src = videoUrl;
+
+    video.onloadedmetadata = () => {
+      const duration = Math.round(video.duration);
+      resolve(duration);
+    };
+
+    video.onerror = () => {
+      console.warn(`영상 길이를 불러오지 못했습니다: ${videoUrl}`);
+      resolve(0);
+    };
+  });
+};
+
+// 기본 메타데이터 생성
+const createBaseMetadata = (index: number): VideoMeta => {
+  const videoNumber = index + 1;
+
+  return {
+    thumbnail: '',
+    title: '',
+    description: `저를 바꿔주세요 ${videoNumber}`,
+    channel_name: '저를 바꿔주세요',
+    profile_image: '',
+    ...customMetadata[videoNumber],
+  };
+};
+
+// duration_sec을 제외한 기본 mockVideos
+export const mockVideos: VideoData[] = Array.from({ length: 50 }, (_, index) => {
+  const videoNumber = index + 1;
+  const metadata = createBaseMetadata(index);
+
+  return {
+    video_id: `video-${String(videoNumber).padStart(2, '0')}`,
+    video_url: `/v${videoNumber}.mp4`,
+    thumbnail: metadata.thumbnail,
+    title: metadata.title,
+    description: metadata.description,
+    channel_name: metadata.channel_name,
+    profile_image: metadata.profile_image,
+
+    // 난수 자동 생성
+    like_count: randomInt(1000, 200000),
+    comment_count: randomInt(100, 10000),
+    share_count: randomInt(50, 15000),
+
+    // 실제 영상 길이는 loadMockVideos()에서 업데이트됨
+    duration_sec: 0,
+
+    order_index: index,
+  };
+});
+
+// 실제 duration_sec까지 반영된 최종 영상 데이터 로드 함수
+export const loadMockVideos = async (): Promise<VideoData[]> => {
+  const videosWithDurations = await Promise.all(
+    mockVideos.map(async (video) => {
+      const duration = await getVideoDuration(video.video_url);
+
+      return {
+        ...video,
+        duration_sec: duration,
+      };
+    })
+  );
+
+  return videosWithDurations;
+};
 
 export const bgColorForIndex = (i: number) => bgColors[i % bgColors.length];

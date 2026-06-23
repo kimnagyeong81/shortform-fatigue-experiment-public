@@ -33,31 +33,29 @@ export default function VideoCard({
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  const tryPlay = useCallback(() => {
+  const forcePlay = useCallback(async () => {
     const el = videoRef.current;
 
-    if (!el || !isActive || !hasStarted || paused) return;
+    if (!el || !isActive || !hasStarted) return false;
 
-    // 모바일 브라우저 대응
-    el.playsInline = true;
+    try {
+      el.playsInline = true;
+      el.muted = false;
+      el.volume = 1;
 
-    // 사용자가 “소리와 함께 시청 시작” 버튼을 누른 뒤에는 소리가 나도록 muted를 false로 둔다.
-    el.muted = false;
-    el.volume = 1;
+      await el.play();
 
-    const playPromise = el.play();
+      setPaused(false);
+      setPlayBlocked(false);
+      setIsVideoReady(true);
 
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          setPlayBlocked(false);
-        })
-        .catch((err) => {
-          console.log('video play blocked:', err);
-          setPlayBlocked(true);
-        });
+      return true;
+    } catch (err) {
+      console.log('video play blocked:', err);
+      setPlayBlocked(true);
+      return false;
     }
-  }, [isActive, hasStarted, paused]);
+  }, [isActive, hasStarted]);
 
   useEffect(() => {
     const el = videoRef.current;
@@ -74,23 +72,40 @@ export default function VideoCard({
       el.volume = 1;
 
       if (!paused) {
-        tryPlay();
+        forcePlay();
       } else {
         el.pause();
       }
     } else {
       el.pause();
       el.currentTime = 0;
+
       setProgress(0);
       setPaused(false);
       setIsVideoReady(false);
       setPlayBlocked(false);
     }
-  }, [isActive, hasStarted, paused, tryPlay]);
+  }, [isActive, hasStarted, paused, forcePlay]);
 
   const togglePause = useCallback(() => {
     const el = videoRef.current;
     if (!el || !isActive || !hasStarted) return;
+
+    /*
+      핵심 수정:
+      모바일에서 소리 있는 자동재생이 막히면 playBlocked=true가 됨.
+      이때 첫 번째 화면 터치는 pause 토글이 아니라 "재생 재시도"로 처리해야 함.
+      그래야 두 번 눌러야 재생되는 문제가 줄어듦.
+    */
+    if (playBlocked) {
+      forcePlay().then((success) => {
+        if (success) {
+          onPlayStateChange(video.video_id, true);
+        }
+      });
+
+      return;
+    }
 
     setPaused((prev) => {
       const nextPaused = !prev;
@@ -99,25 +114,23 @@ export default function VideoCard({
         el.pause();
         onPlayStateChange(video.video_id, false);
       } else {
-        el.playsInline = true;
-        el.muted = false;
-        el.volume = 1;
-
-        el.play()
-          .then(() => {
-            setPlayBlocked(false);
-          })
-          .catch((err) => {
-            console.log('video play blocked:', err);
-            setPlayBlocked(true);
-          });
-
-        onPlayStateChange(video.video_id, true);
+        forcePlay().then((success) => {
+          if (success) {
+            onPlayStateChange(video.video_id, true);
+          }
+        });
       }
 
       return nextPaused;
     });
-  }, [isActive, hasStarted, onPlayStateChange, video.video_id]);
+  }, [
+    isActive,
+    hasStarted,
+    playBlocked,
+    forcePlay,
+    onPlayStateChange,
+    video.video_id,
+  ]);
 
   const handleLike = useCallback(() => {
     const newLiked = !liked;
@@ -145,20 +158,19 @@ export default function VideoCard({
         disablePictureInPicture
         onLoadedData={() => {
           setIsVideoReady(true);
-          tryPlay();
+          if (isActive && hasStarted && !paused) {
+            forcePlay();
+          }
         }}
         onCanPlay={() => {
           setIsVideoReady(true);
-          tryPlay();
+          if (isActive && hasStarted && !paused) {
+            forcePlay();
+          }
         }}
         onPlaying={() => {
           setIsVideoReady(true);
           setPlayBlocked(false);
-        }}
-        onWaiting={() => {
-          if (isActive && hasStarted) {
-            setIsVideoReady(false);
-          }
         }}
         onTimeUpdate={(e) => {
           const el = e.currentTarget;

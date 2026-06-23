@@ -36,8 +36,6 @@ interface SessionResult {
   sessionId: string | null;
 }
 
-// Vercel 배포 환경에서는 VITE_API_BASE_URL 값을 사용하고,
-// 로컬 개발 환경에서는 http://127.0.0.1:8000 을 사용한다.
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000';
 
@@ -64,7 +62,12 @@ export function useEventLogger() {
   const participantId = useRef<string | null>(null);
   const sessionId = useRef<string | null>(null);
   const sequenceIndex = useRef(0);
+
   const initialized = useRef(false);
+
+  // 실험 종료 여부
+  // true가 되면 session_end 이후의 모든 행동 로그는 더 이상 저장하지 않음
+  const ended = useRef(false);
 
   const sendEventToServer = useCallback(
     async (eventDoc: Record<string, unknown>) => {
@@ -79,6 +82,9 @@ export function useEventLogger() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(eventDoc),
+
+          // 페이지 이동 직전 session_end 저장 성공률을 조금 높이기 위한 옵션
+          keepalive: true,
         });
 
         console.log('[useEventLogger] Event response status:', response.status);
@@ -100,6 +106,16 @@ export function useEventLogger() {
 
   const logEvent = useCallback(
     async (eventType: EventType, params?: LogParams) => {
+      // 실험 종료 후에는 추가 행동 로그 저장 중단
+      // 단, session_end 자체는 endSession에서 직접 저장하므로 여기서는 막아도 됨
+      if (ended.current) {
+        console.log(
+          '[useEventLogger] Event ignored because experiment already ended:',
+          eventType
+        );
+        return;
+      }
+
       if (!participantId.current || !sessionId.current) {
         console.warn(
           '[useEventLogger] Event ignored because session is not initialized:',
@@ -141,6 +157,7 @@ export function useEventLogger() {
       }
 
       initialized.current = true;
+      ended.current = false;
 
       const now = Date.now();
       const newParticipantId = externalId || `anon_${now}`;
@@ -185,8 +202,7 @@ export function useEventLogger() {
         console.error('[useEventLogger] Session creation network error:', error);
       }
 
-      // session_start는 logEvent를 거치지 않고 직접 생성한다.
-      // initSession 직후 첫 로그가 무시되는 문제를 막기 위함.
+      // session_start는 logEvent를 거치지 않고 직접 저장
       const sessionStartEvent = {
         participant_id: newParticipantId,
         session_id: newSessionId,
@@ -208,18 +224,40 @@ export function useEventLogger() {
     [sendEventToServer]
   );
 
-  const endSession = useCallback(async () => {
-    if (!participantId.current || !sessionId.current) {
-      console.warn('[useEventLogger] endSession ignored: no active session');
-      return;
-    }
+  const endSession = useCallback(
+    async (reason = 'user_clicked_end_button') => {
+      if (!participantId.current || !sessionId.current) {
+        console.warn('[useEventLogger] endSession ignored: no active session');
+        return;
+      }
 
-    await logEvent('session_end', {
-      metadata: {
-        ended_at_client: new Date().toISOString(),
-      },
-    });
-  }, [logEvent]);
+      if (ended.current) {
+        console.log('[useEventLogger] endSession ignored: already ended');
+        return;
+      }
+
+      // 여기서 먼저 true로 바꿔서 이후 발생하는 skip, pause, impression 로그를 차단
+      ended.current = true;
+
+      const sessionEndEvent = {
+        participant_id: participantId.current,
+        session_id: sessionId.current,
+        video_id: null,
+        sequence_index: sequenceIndex.current++,
+        event_type: 'session_end',
+        playback_position_sec: null,
+        watch_duration_sec: null,
+        metadata: {
+          ended_at_client: new Date().toISOString(),
+          reason,
+          page_url: window.location.href,
+        },
+      };
+
+      await sendEventToServer(sessionEndEvent);
+    },
+    [sendEventToServer]
+  );
 
   return {
     initSession,
@@ -227,5 +265,6 @@ export function useEventLogger() {
     endSession,
     participantId,
     sessionId,
+    ended,
   };
 }

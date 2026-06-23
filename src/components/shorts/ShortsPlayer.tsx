@@ -10,6 +10,7 @@ const DEFAULT_RETURN_URL = 'https://replit.com/@gimnagyeong/Korean-Survey-Site';
 export default function ShortsPlayer() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isEnding, setIsEnding] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
 
   const feedRef = useRef<HTMLDivElement>(null);
 
@@ -18,6 +19,7 @@ export default function ShortsPlayer() {
 
   const prevIndexRef = useRef(0);
   const initializedRef = useRef(false);
+  const firstImpressionLoggedRef = useRef(false);
   const endingRef = useRef(false);
 
   const getReturnUrl = useCallback(() => {
@@ -35,29 +37,14 @@ export default function ShortsPlayer() {
     if (initializedRef.current) return;
     initializedRef.current = true;
 
-    const startExperiment = async () => {
+    const startSession = async () => {
       const params = new URLSearchParams(window.location.search);
       const participantIdFromUrl = params.get('participantId');
 
       await initSession(participantIdFromUrl ?? undefined);
-
-      const firstVideo = mockVideos[0];
-
-      if (firstVideo) {
-        await logEvent('video_impression', {
-          videoId: firstVideo.video_id,
-          metadata: {
-            video_index: 0,
-            order_index: firstVideo.order_index,
-            duration_sec: firstVideo.duration_sec,
-          },
-        });
-      }
-
-      play();
     };
 
-    startExperiment();
+    startSession();
 
     const handleBeforeUnload = () => {
       if (endingRef.current) return;
@@ -71,7 +58,47 @@ export default function ShortsPlayer() {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [initSession, logEvent, play, pause, endSession]);
+  }, [initSession, pause, endSession]);
+
+  const handleStartWatching = useCallback(async () => {
+    if (hasStarted) return;
+
+    setHasStarted(true);
+
+    const activeVideoEl = feedRef.current?.querySelector<HTMLVideoElement>(
+      'video[data-active="true"]'
+    );
+
+    if (activeVideoEl) {
+      activeVideoEl.playsInline = true;
+      activeVideoEl.muted = false;
+      activeVideoEl.volume = 1;
+
+      try {
+        await activeVideoEl.play();
+      } catch (err) {
+        console.log('initial video play blocked:', err);
+      }
+    }
+
+    const firstVideo = mockVideos[currentIndex];
+
+    if (firstVideo && !firstImpressionLoggedRef.current) {
+      firstImpressionLoggedRef.current = true;
+
+      await logEvent('video_impression', {
+        videoId: firstVideo.video_id,
+        metadata: {
+          video_index: currentIndex,
+          order_index: firstVideo.order_index,
+          duration_sec: firstVideo.duration_sec,
+          source: 'experiment_start_button',
+        },
+      });
+    }
+
+    play();
+  }, [hasStarted, currentIndex, logEvent, play]);
 
   useEffect(() => {
     const feed = feedRef.current;
@@ -80,7 +107,7 @@ export default function ShortsPlayer() {
     let scrollTimeout: ReturnType<typeof setTimeout>;
 
     const handleScroll = () => {
-      if (endingRef.current) return;
+      if (endingRef.current || !hasStarted) return;
 
       clearTimeout(scrollTimeout);
 
@@ -99,10 +126,10 @@ export default function ShortsPlayer() {
       clearTimeout(scrollTimeout);
       feed.removeEventListener('scroll', handleScroll);
     };
-  }, [currentIndex]);
+  }, [currentIndex, hasStarted]);
 
   useEffect(() => {
-    if (endingRef.current) return;
+    if (endingRef.current || !hasStarted) return;
     if (prevIndexRef.current === currentIndex) return;
 
     pause();
@@ -149,11 +176,11 @@ export default function ShortsPlayer() {
         duration_sec: currentVideo.duration_sec,
       },
     });
-  }, [currentIndex, pause, getWatchDuration, reset, play, logEvent]);
+  }, [currentIndex, hasStarted, pause, getWatchDuration, reset, play, logEvent]);
 
   const handlePlayStateChange = useCallback(
     (videoId: string, playing: boolean) => {
-      if (endingRef.current) return;
+      if (endingRef.current || !hasStarted) return;
 
       if (playing) {
         play();
@@ -179,12 +206,12 @@ export default function ShortsPlayer() {
         });
       }
     },
-    [play, pause, getWatchDuration, logEvent]
+    [hasStarted, play, pause, getWatchDuration, logEvent]
   );
 
   const handleLike = useCallback(
     (videoId: string, liked: boolean) => {
-      if (endingRef.current) return;
+      if (endingRef.current || !hasStarted) return;
 
       logEvent(liked ? 'like' : 'unlike', {
         videoId,
@@ -193,29 +220,29 @@ export default function ShortsPlayer() {
         },
       });
     },
-    [logEvent]
+    [hasStarted, logEvent]
   );
 
   const handleComment = useCallback(
     (videoId: string) => {
-      if (endingRef.current) return;
+      if (endingRef.current || !hasStarted) return;
 
       logEvent('comment_open', {
         videoId,
       });
     },
-    [logEvent]
+    [hasStarted, logEvent]
   );
 
   const handleShare = useCallback(
     (videoId: string) => {
-      if (endingRef.current) return;
+      if (endingRef.current || !hasStarted) return;
 
       logEvent('share_click', {
         videoId,
       });
     },
-    [logEvent]
+    [hasStarted, logEvent]
   );
 
   const handleEndExperiment = useCallback(async () => {
@@ -229,7 +256,7 @@ export default function ShortsPlayer() {
     const currentVideo = mockVideos[currentIndex];
     const watchDur = getWatchDuration();
 
-    if (currentVideo) {
+    if (currentVideo && hasStarted) {
       await logEvent('pause', {
         videoId: currentVideo.video_id,
         watchDurationSec: watchDur,
@@ -245,7 +272,15 @@ export default function ShortsPlayer() {
 
     const returnUrl = getReturnUrl();
     window.location.href = returnUrl;
-  }, [pause, getWatchDuration, currentIndex, logEvent, endSession, getReturnUrl]);
+  }, [
+    pause,
+    getWatchDuration,
+    currentIndex,
+    hasStarted,
+    logEvent,
+    endSession,
+    getReturnUrl,
+  ]);
 
   return (
     <div
@@ -254,14 +289,40 @@ export default function ShortsPlayer() {
     >
       <ShortsHeader />
 
-      <button
-        type="button"
-        onClick={handleEndExperiment}
-        disabled={isEnding}
-        className="absolute top-20 right-4 z-50 rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-black shadow-lg backdrop-blur disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        {isEnding ? '종료 중...' : '실험 종료'}
-      </button>
+      {hasStarted && (
+        <button
+          type="button"
+          onClick={handleEndExperiment}
+          disabled={isEnding}
+          className="absolute top-20 right-4 z-50 rounded-full bg-white/90 px-4 py-2 text-sm font-semibold text-black shadow-lg backdrop-blur disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {isEnding ? '종료 중...' : '실험 종료'}
+        </button>
+      )}
+
+      {!hasStarted && (
+        <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/90 px-6">
+          <div className="w-full max-w-sm rounded-3xl bg-white p-7 text-center shadow-xl">
+            <h1 className="mb-4 text-2xl font-bold text-black">
+              숏폼 시청을 시작합니다
+            </h1>
+
+            <p className="mb-6 text-base leading-7 text-gray-700">
+              아래 버튼을 누르면 소리와 함께 숏폼 영상 시청이 시작됩니다.
+              <br />
+              평소 숏폼을 보듯이 자유롭게 시청해 주세요.
+            </p>
+
+            <button
+              type="button"
+              onClick={handleStartWatching}
+              className="w-full rounded-2xl bg-blue-700 px-5 py-4 text-lg font-bold text-white shadow"
+            >
+              소리와 함께 시청 시작
+            </button>
+          </div>
+        </div>
+      )}
 
       <div
         ref={feedRef}
@@ -273,6 +334,7 @@ export default function ShortsPlayer() {
               video={video}
               index={i}
               isActive={i === currentIndex}
+              hasStarted={hasStarted}
               onLike={handleLike}
               onComment={handleComment}
               onShare={handleShare}

@@ -310,3 +310,4 @@ export const loadMockVideos = async (): Promise<VideoData[]> => {
 };
 
 export const bgColorForIndex = (i: number) => bgColors[i % bgColors.length];
+

@@ -36,7 +36,10 @@ export default function ShortsPlayer() {
     initializedRef.current = true;
 
     const startExperiment = async () => {
-      await initSession();
+      const params = new URLSearchParams(window.location.search);
+      const participantIdFromUrl = params.get('participantId');
+
+      await initSession(participantIdFromUrl ?? undefined);
 
       const firstVideo = mockVideos[0];
 

@@ -26,19 +26,37 @@ export default function VideoCard({
   const [liked, setLiked] = useState(false);
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isVideoReady, setIsVideoReady] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  // 자동 재생/정지는 처리하되, 부모에 play/pause 이벤트는 보내지 않음
+  const tryPlay = useCallback(() => {
+    const el = videoRef.current;
+    if (!el || !isActive || paused) return;
+
+    // 모바일 자동재생 안정화
+    el.muted = true;
+    el.playsInline = true;
+
+    const playPromise = el.play();
+
+    if (playPromise !== undefined) {
+      playPromise.catch((err) => {
+        console.log('video autoplay blocked:', err);
+      });
+    }
+  }, [isActive, paused]);
+
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
 
     if (isActive) {
+      el.muted = true;
+      el.playsInline = true;
+
       if (!paused) {
-        el.play().catch((err) => {
-          console.log('video play blocked:', err);
-        });
+        tryPlay();
       } else {
         el.pause();
       }
@@ -47,10 +65,10 @@ export default function VideoCard({
       el.currentTime = 0;
       setProgress(0);
       setPaused(false);
+      setIsVideoReady(false);
     }
-  }, [isActive, paused]);
+  }, [isActive, paused, tryPlay]);
 
-  // 사용자가 직접 탭했을 때만 부모에 알림
   const togglePause = useCallback(() => {
     const el = videoRef.current;
     if (!el || !isActive) return;
@@ -62,9 +80,13 @@ export default function VideoCard({
         el.pause();
         onPlayStateChange(video.video_id, false);
       } else {
+        el.muted = true;
+        el.playsInline = true;
+
         el.play().catch((err) => {
           console.log('video play blocked:', err);
         });
+
         onPlayStateChange(video.video_id, true);
       }
 
@@ -89,8 +111,20 @@ export default function VideoCard({
         src={video.video_url}
         className="absolute inset-0 w-full h-full object-cover"
         loop
+        muted
         playsInline
+        autoPlay={isActive && !paused}
         preload="auto"
+        poster={video.thumbnail || undefined}
+        disablePictureInPicture
+        onLoadedData={() => {
+          setIsVideoReady(true);
+          tryPlay();
+        }}
+        onCanPlay={() => {
+          setIsVideoReady(true);
+          tryPlay();
+        }}
         onTimeUpdate={(e) => {
           const el = e.currentTarget;
           if (el.duration && !Number.isNaN(el.duration)) {
@@ -98,6 +132,12 @@ export default function VideoCard({
           }
         }}
       />
+
+      {!isVideoReady && isActive && (
+        <div className="absolute inset-0 z-0 flex items-center justify-center bg-black">
+          <div className="text-sm text-white/70">영상 로딩 중...</div>
+        </div>
+      )}
 
       {paused && isActive && (
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">

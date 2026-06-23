@@ -111,7 +111,7 @@ const customMetadata: Record<number, Partial<VideoMeta>> = {
     channel_name: 'BBACKENT',
   },
   20: {
-    description: '#개그콘서트 #fyp #Gagconcert #kbs',
+    description: '마운자로를 이겨낸 이수지 실장의 이긴자로 #snl #snl코리아 #예능 #이수지',
     channel_name: 'BBACKENT',
   },
   21: {
@@ -310,4 +310,3 @@ export const loadMockVideos = async (): Promise<VideoData[]> => {
 };
 
 export const bgColorForIndex = (i: number) => bgColors[i % bgColors.length];
-

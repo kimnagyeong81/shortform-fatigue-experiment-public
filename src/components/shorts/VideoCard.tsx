@@ -8,6 +8,7 @@ interface VideoCardProps {
   video: VideoData;
   index: number;
   isActive: boolean;
+  hasStarted: boolean;
   onLike: (videoId: string, liked: boolean) => void;
   onComment: (videoId: string) => void;
   onShare: (videoId: string) => void;
@@ -18,6 +19,7 @@ export default function VideoCard({
   video,
   index,
   isActive,
+  hasStarted,
   onLike,
   onComment,
   onShare,
@@ -27,33 +29,49 @@ export default function VideoCard({
   const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isVideoReady, setIsVideoReady] = useState(false);
+  const [playBlocked, setPlayBlocked] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const tryPlay = useCallback(() => {
     const el = videoRef.current;
-    if (!el || !isActive || paused) return;
 
-    // 모바일 자동재생 안정화
-    el.muted = true;
+    if (!el || !isActive || !hasStarted || paused) return;
+
+    // 모바일 브라우저 대응
     el.playsInline = true;
+
+    // 사용자가 “소리와 함께 시청 시작” 버튼을 누른 뒤에는 소리가 나도록 muted를 false로 둔다.
+    el.muted = false;
+    el.volume = 1;
 
     const playPromise = el.play();
 
     if (playPromise !== undefined) {
-      playPromise.catch((err) => {
-        console.log('video autoplay blocked:', err);
-      });
+      playPromise
+        .then(() => {
+          setPlayBlocked(false);
+        })
+        .catch((err) => {
+          console.log('video play blocked:', err);
+          setPlayBlocked(true);
+        });
     }
-  }, [isActive, paused]);
+  }, [isActive, hasStarted, paused]);
 
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
 
+    if (!hasStarted) {
+      el.pause();
+      return;
+    }
+
     if (isActive) {
-      el.muted = true;
       el.playsInline = true;
+      el.muted = false;
+      el.volume = 1;
 
       if (!paused) {
         tryPlay();
@@ -66,12 +84,13 @@ export default function VideoCard({
       setProgress(0);
       setPaused(false);
       setIsVideoReady(false);
+      setPlayBlocked(false);
     }
-  }, [isActive, paused, tryPlay]);
+  }, [isActive, hasStarted, paused, tryPlay]);
 
   const togglePause = useCallback(() => {
     const el = videoRef.current;
-    if (!el || !isActive) return;
+    if (!el || !isActive || !hasStarted) return;
 
     setPaused((prev) => {
       const nextPaused = !prev;
@@ -80,19 +99,25 @@ export default function VideoCard({
         el.pause();
         onPlayStateChange(video.video_id, false);
       } else {
-        el.muted = true;
         el.playsInline = true;
+        el.muted = false;
+        el.volume = 1;
 
-        el.play().catch((err) => {
-          console.log('video play blocked:', err);
-        });
+        el.play()
+          .then(() => {
+            setPlayBlocked(false);
+          })
+          .catch((err) => {
+            console.log('video play blocked:', err);
+            setPlayBlocked(true);
+          });
 
         onPlayStateChange(video.video_id, true);
       }
 
       return nextPaused;
     });
-  }, [isActive, onPlayStateChange, video.video_id]);
+  }, [isActive, hasStarted, onPlayStateChange, video.video_id]);
 
   const handleLike = useCallback(() => {
     const newLiked = !liked;
@@ -108,13 +133,14 @@ export default function VideoCard({
     >
       <video
         ref={videoRef}
+        data-active={isActive ? 'true' : 'false'}
         src={video.video_url}
         className="absolute inset-0 w-full h-full object-cover"
         loop
-        muted
         playsInline
-        autoPlay={isActive && !paused}
         preload="auto"
+        autoPlay={isActive && hasStarted && !paused}
+        muted={false}
         poster={video.thumbnail || undefined}
         disablePictureInPicture
         onLoadedData={() => {
@@ -125,6 +151,15 @@ export default function VideoCard({
           setIsVideoReady(true);
           tryPlay();
         }}
+        onPlaying={() => {
+          setIsVideoReady(true);
+          setPlayBlocked(false);
+        }}
+        onWaiting={() => {
+          if (isActive && hasStarted) {
+            setIsVideoReady(false);
+          }
+        }}
         onTimeUpdate={(e) => {
           const el = e.currentTarget;
           if (el.duration && !Number.isNaN(el.duration)) {
@@ -133,13 +168,13 @@ export default function VideoCard({
         }}
       />
 
-      {!isVideoReady && isActive && (
+      {!isVideoReady && isActive && hasStarted && (
         <div className="absolute inset-0 z-0 flex items-center justify-center bg-black">
           <div className="text-sm text-white/70">영상 로딩 중...</div>
         </div>
       )}
 
-      {paused && isActive && (
+      {(paused || playBlocked) && isActive && hasStarted && (
         <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <div className="w-16 h-16 rounded-full bg-background/30 flex items-center justify-center backdrop-blur-sm">
             <Play className="w-8 h-8 text-foreground ml-1" />

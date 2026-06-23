@@ -35,7 +35,7 @@ type VideoMeta = {
 // 여기에서 description, channel_name 등을 영상별로 수정하시면 됩니다.
 const customMetadata: Record<number, Partial<VideoMeta>> = {
   1: {
-    description: '비서와 부장님의 위험한 야근 1화 #과일AI #과일드라마 #fruit #aivideo #shorts',
+    description: '"넌 왜 세금 많이 내냐" 연예인 잘 몰랐던 김선영🤣 | 라디오스타 | TVPP | MBC 161214 방송',
     channel_name: '놀란사실.2',
   },
   2: {
@@ -47,11 +47,11 @@ const customMetadata: Record<number, Partial<VideoMeta>> = {
     channel_name: 'tvNJoy',
   },
   4: {
-    description: '"넌 왜 세금 많이 내냐" 연예인 잘 몰랐던 김선영🤣 | 라디오스타 | TVPP | MBC 161214 방송',
+    description: '고양이가 스라소니를 구했습니다... 몇 년 후, 스라소니가 돌아왔습니다.',
     channel_name: 'TVPeople',
   },
   5: {
-    description: '고양이가 스라소니를 구했습니다... 몇 년 후, 스라소니가 돌아왔습니다.',
+    description: '비서와 부장님의 위험한 야근 1화 #과일AI #과일드라마 #fruit #aivideo #shorts',
     channel_name: 'BBACKENT',
   },
   6: {

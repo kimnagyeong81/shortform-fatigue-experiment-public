@@ -35,7 +35,7 @@ type VideoMeta = {
 // 여기에서 description, channel_name 등을 영상별로 수정하시면 됩니다.
 const customMetadata: Record<number, Partial<VideoMeta>> = {
   1: {
-    description: '"넌 왜 세금 많이 내냐" 연예인 잘 몰랐던 김선영🤣 | 라디오스타 | TVPP | MBC 161214 방송',
+    description: '애매했는데 다 웃어줬습니다🤣#이창섭 #전과자 #연세대',
     channel_name: '놀란사실.2',
   },
   2: {
@@ -51,7 +51,7 @@ const customMetadata: Record<number, Partial<VideoMeta>> = {
     channel_name: 'TVPeople',
   },
   5: {
-    description: '비서와 부장님의 위험한 야근 1화 #과일AI #과일드라마 #fruit #aivideo #shorts',
+    description: '여자들 난리날것같은 하트모양 핸드폰 갤럭시 vs 아이폰',
     channel_name: 'BBACKENT',
   },
   6: {
@@ -91,7 +91,7 @@ const customMetadata: Record<number, Partial<VideoMeta>> = {
     channel_name: 'BBACKENT',
   },
   15: {
-    description: '여자들 난리날것같은 하트모양 핸드폰 갤럭시 vs 아이폰',
+    description: '비서와 부장님의 위험한 야근 1화 #과일AI #과일드라마 #fruit #aivideo #shorts',
     channel_name: 'BBACKENT',
   },
   16: {
